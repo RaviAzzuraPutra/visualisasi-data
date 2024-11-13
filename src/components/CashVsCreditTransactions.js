@@ -5,21 +5,37 @@ import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Tooltip, Lege
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
 
 export default function CashVsCreditTransactions({ data }) {
-    const chartData = {
-        labels: data.map(d => d.Location),
-        datasets: [
-            {
-                label: 'Cash Transactions',
-                data: data.map(d => parseFloat(d.CashSales)),
-                backgroundColor: 'rgba(75, 192, 192, 0.6)',
-            },
-            {
-                label: 'Credit Transactions',
-                data: data.map(d => parseFloat(d.CreditSales)),
-                backgroundColor: 'rgba(153, 102, 255, 0.6)',
-            },
-        ],
-    };
+    const locations = [...new Set(data.map(d => d.Location))];
 
-    return <Bar data={chartData} options={{ indexAxis: 'y' }} />;
+    return (
+        <div>
+            {locations.map(location => {
+                const locationData = data.filter(d => d.Location === location);
+                const cashSales = locationData.reduce((sum, d) => sum + parseFloat(d.CashSales), 0);
+                const creditSales = locationData.reduce((sum, d) => sum + parseFloat(d.CreditSales), 0);
+
+                const chartData = {
+                    labels: ['Cash Transactions', 'Credit Transactions'],
+                    datasets: [
+                        {
+                            label: `${location} - Cash vs Credit`,
+                            data: [cashSales, creditSales],
+                            backgroundColor: [
+                                'rgba(75, 192, 192, 0.6)',
+                                'rgba(153, 102, 255, 0.6)'
+                            ],
+                        }
+                    ],
+                };
+
+                return (
+                    <div key={location}>
+                        <hr className='m-5' />
+                        <h3 className='mb-7'>{location}</h3>
+                        <Bar data={chartData} options={{ indexAxis: 'y' }} />
+                    </div>
+                );
+            })}
+        </div>
+    );
 }

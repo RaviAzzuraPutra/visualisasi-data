@@ -4,21 +4,33 @@ import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Tooltip, Lege
 // Register the necessary components
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
 
-export default function PeakSalesDates({ data }) {
-    // Urutkan dan ambil 3 transaksi tertinggi
+export default function PeakSalesDates({ data, locationFilter }) {
+    // Sort the data by total transactions
     const sortedData = [...data].sort((a, b) => parseFloat(b.TotalTransactions) - parseFloat(a.TotalTransactions));
-    const top3Data = sortedData.slice(0, 3);
+
+    // Filter the data based on locationFilter, if it exists
+    const filteredData = locationFilter
+        ? sortedData.filter(d => d.Location === locationFilter)
+        : sortedData;
+
+    // Prepare the datasets for the chart
+    const locations = [...new Set(sortedData.map(d => d.Location))]; // Get unique locations
+    const datasets = locations.map(location => {
+        const locationData = filteredData.filter(d => d.Location === location);
+        return {
+            label: location,
+            data: locationData.map(d => parseFloat(d.TotalTransactions)),
+            backgroundColor: location === 'Brunswick Sq Mall' ? 'rgba(54, 162, 235, 0.6)' :
+                location === 'EB Public Library' ? 'rgba(255, 99, 132, 0.6)' :
+                    location === 'Earle Asphalt' ? 'rgba(75, 192, 192, 0.6)' :
+                        'rgba(153, 102, 255, 0.6)',
+        };
+    });
 
     const chartData = {
-        labels: top3Data.map(d => d.Month),
-        datasets: [
-            {
-                label: 'Top Sales Dates',
-                data: top3Data.map(d => parseFloat(d.TotalTransactions)),
-                backgroundColor: 'rgba(255, 206, 86, 0.6)',
-            },
-        ],
+        labels: filteredData.map(d => d.Month),
+        datasets,
     };
 
-    return <Bar data={chartData} />;
+    return <Bar data={chartData} options={{ indexAxis: 'x' }} />;
 }
