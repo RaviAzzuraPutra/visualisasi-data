@@ -5,7 +5,6 @@ import dataJson from '../../public/data/Pivot_Table.json';
 import TotalRevenueBarChart from '../components/TotalRevenueBarChart';
 import AverageTransactionLineChart from '../components/AverageTransactionLineChart';
 import SalesPerformanceByCategory from '../components/SalesPerformanceByCategory';
-import PaymentErrorFrequency from '../components/PaymentErrorFrequency';
 import CashVsCreditTransactions from '../components/CashVsCreditTransactions';
 import PeakSalesDates from '../components/PeakSalesDates';
 
@@ -19,52 +18,36 @@ interface DataType {
   TotalTransactions: string;
   CashSales: string;
   CreditSales: string;
-  TotalUniqueCoilsUsed: string;
+  CarbonatedSales: string;
+  FoodSales: string;
+  NonCarbonatedSales: string;
+  WaterSales: string;
+  [key: string]: string;
 }
 
 export default function Home() {
-  const [locationFilter, setLocationFilter] = useState<string>("");
-  const [categoryFilter, setCategoryFilter] = useState<string>('');
-  const [filteredData, setFilteredData] = useState<DataType[]>([]);
+  const [locationFilter, setLocationFilter] = useState<string[]>([]);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>(['Carbonated', 'Food', 'NonCarbonated', 'Water']);
+  const [locationFilteredData, setLocationFilteredData] = useState<DataType[]>(dataJson.data);
 
-  // Function to handle filter changes
-  const handleFilterChange = (key: string, value: string) => {
+  const handleFilterChange = (key: string, value: string[], allSelected: boolean) => {
     if (key === 'Location') {
-      setLocationFilter(value);
+      setLocationFilter(allSelected ? [] : value);
     } else if (key === 'Category') {
-      setCategoryFilter(value);
+      setSelectedCategories(allSelected ? ['Carbonated', 'Food', 'NonCarbonated', 'Water'] : value);
     }
   };
 
-  // Update filtered data whenever filters change
   useEffect(() => {
-    let newFilteredData = dataJson.data;
-
-    // Apply Location filter
-    if (locationFilter) {
-      newFilteredData = newFilteredData.filter((d: DataType) => d.Location === locationFilter);
+    // Location-filtered data (for location-based charts only)
+    let newLocationFilteredData = dataJson.data;
+    if (locationFilter.length > 0) {
+      newLocationFilteredData = newLocationFilteredData.filter((d: DataType) =>
+        locationFilter.includes(d.Location)
+      );
     }
-
-    // Apply Category filter
-    if (categoryFilter) {
-      newFilteredData = newFilteredData.filter((d: DataType) => {
-        switch (categoryFilter) {
-          case 'CarbonatedSales':
-            return parseFloat(d.CarbonatedSales) > 0;
-          case 'FoodSales':
-            return parseFloat(d.FoodSales) > 0;
-          case 'NonCarbonatedSales':
-            return parseFloat(d.NonCarbonatedSales) > 0;
-          case 'WaterSales':
-            return parseFloat(d.WaterSales) > 0;
-          default:
-            return true;
-        }
-      });
-    }
-
-    setFilteredData(newFilteredData);
-  }, [locationFilter, categoryFilter])
+    setLocationFilteredData(newLocationFilteredData);
+  }, [locationFilter]);
 
   return (
     <div>
@@ -73,45 +56,30 @@ export default function Home() {
 
         <Filter
           locations={[...new Set(dataJson.data.map((d: DataType) => d.Location))]}
-          categories={['CarbonatedSales', 'FoodSales', 'NonCarbonatedSales', 'WaterSales']}
+          categories={['Carbonated', 'Food', 'NonCarbonated', 'Water']}
           onFilterChange={handleFilterChange}
         />
 
         <hr />
 
-        <h1 className='flex justify-center text-2xl font-bold my-5'>Total Revenue by Location</h1>
-        <p>
-          Berapa total pendapatan yang dihasilkan oleh setiap mesin penjual otomatis dari berbagai lokasi?
-        </p>
-        <TotalRevenueBarChart data={filteredData} />
+        <h1 className='flex justify-center text-2xl font-bold my-5'>Top Selling Category Across Machine</h1>
+        <TotalRevenueBarChart data={dataJson.data} selectedCategories={selectedCategories} />
         <hr className='m-6' />
 
-        <h1 className='flex justify-center text-2xl font-bold my-5'>Average Transaction Value</h1>
-        <p>
-          Berapa nilai rata-rata transaksi di setiap mesin penjual otomatis?
-        </p>
-        <AverageTransactionLineChart data={filteredData} />
+        <h1 className='flex justify-center text-2xl font-bold my-5'>Average Value of Transaction</h1>
+        <AverageTransactionLineChart data={locationFilteredData} />
         <hr className='m-6' />
 
-        <h1 className='flex justify-center text-2xl font-bold my-5'>Sales Performance by Category</h1>
-        <p>
-          Bagaimana kinerja penjualan bervariasi di antara berbagai kategori produk (minuman berkarbonasi, makanan, minuman non-karbonasi, dan air) di mesin penjual otomatis?
-        </p>
-        <SalesPerformanceByCategory data={filteredData} />
+        <h1 className='flex justify-center text-2xl font-bold my-5'>Sales in each Category</h1>
+        <SalesPerformanceByCategory data={dataJson.data} selectedCategories={selectedCategories} />
         <hr className='m-6' />
 
-        <h1 className='flex justify-center text-2xl font-bold my-5'>Cash vs Credit Transactions</h1>
-        <p className='mb-3'>
-          Bagaimana perbandingan proporsi transaksi tunai dengan transaksi kredit dalam operasi mesin penjual otomatis? (berdasarkan ID mesin)
-        </p>
-        <CashVsCreditTransactions data={filteredData} />
+        <h1 className='flex justify-center text-2xl font-bold my-5'>Payment Type in each Machine</h1>
+        <CashVsCreditTransactions data={locationFilteredData} />
         <hr className='m-6' />
 
-        <h1 className='flex justify-center text-2xl font-bold my-5'>Peak Sales Dates</h1>
-        <p>
-          Bagaimana cara menentukan tanggal puncak (tanggal) dengan transaksi tertinggi untuk mengoptimalkan persediaan, pemeliharaan, dan strategi promosi? (3 Teratas)	Untuk mengoptimalkan persediaan, pemeliharaan, dan strategi promosi.
-        </p>
-        <PeakSalesDates data={filteredData} locationFilter={locationFilter} />
+        <h1 className='flex justify-center text-2xl font-bold my-5'>Peak Sales Date</h1>
+        <PeakSalesDates data={locationFilteredData} locationFilter={locationFilter} />
         <div className='mb-7'></div>
       </div>
     </div>
